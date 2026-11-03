@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大学生の自炊＆スケジュール</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>🎓 大学生の自炊＆スケジュール</h1>
+    <p class="subtitle">予定に合わせた献立提案・レシピ・月間スケジュール＆食費予算</p>
+    
+    <!-- 表示切替タブ -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" id="tab-menu-btn" onclick="switchTab('menu')">🍳 今週の献立</button>
+      <button class="tab-btn" id="tab-cal-btn" onclick="switchTab('calendar')">📅 月間スケジュール</button>
+      <button class="tab-btn" id="tab-budget-btn" onclick="switchTab('budget')">💰 食費予算</button>
+      <button class="tab-btn" id="tab-shop-btn" onclick="switchTab('shopping')">🛒 買い物リスト</button>
+    </nav>
+  </header>
+
+  <!-- 1. 献立エリア -->
+  <main id="menu-view" class="tab-content active">
+    <div id="schedule-container"></div>
+  </main>
+
+  <!-- 2. 月間カレンダーエリア -->
+  <section id="calendar-view" class="tab-content">
+    <div class="calendar-card">
+      <div class="calendar-header">
+        <div class="month-nav">
+          <button class="btn-action" onclick="changeMonth(-1)">◀ 前月</button>
+          <h2 id="current-month-year">2026年 10月</h2>
+          <button class="btn-action" onclick="changeMonth(1)">次月 ▶</button>
+        </div>
+        <p class="cal-legend">日付をタップして予定を追加・削除できます</p>
+      </div>
+      <div class="calendar-grid" id="calendar-grid">
+        <!-- JSで動的生成 -->
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 食費予算管理エリア -->
+  <section id="budget-view" class="tab-content">
+    <div class="budget-card">
+      <h2>💰 今月の食費予算プランナー</h2>
+      <p class="budget-sub">目標予算と内訳目安を自由に変更してシミュレーションできます</p>
+      
+      <div class="budget-input-group">
+        <label for="monthly-budget-input">今月の目標食費上限（円）:</label>
+        <input type="number" id="monthly-budget-input" value="25000" step="1000" oninput="calculateBudget()">
+      </div>
+
+      <div class="budget-summary-box">
+        <div class="summary-item">
+          <span class="sum-label">内訳合計予定額</span>
+          <span class="sum-val" id="total-spent-val">￥25,000</span>
+        </div>
+        <div class="summary-item">
+          <span class="sum-label">残高・余力</span>
+          <span class="sum-val highlight" id="remaining-val">￥0</span>
+        </div>
+      </div>
+
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="budget-progress-fill" style="width: 100%;"></div>
+      </div>
+
+      <div class="sliders-container">
+        <h3>🛒 買い出しカテゴリー別の目安調整</h3>
+        
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>🥩 肉・魚・メイン食材</span>
+            <span class="slider-val" id="val-meat">￥11,000</span>
+          </div>
+          <input type="range" id="range-meat" min="0" max="25000" step="500" value="11000" oninput="calculateBudget()">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>🥦 野菜・豆腐・たまご・調味料</span>
+            <span class="slider-val" id="val-vege">￥9,000</span>
+          </div>
+          <input type="range" id="range-vege" min="0" max="20000" step="500" value="9000" oninput="calculateBudget()">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>🍚 お米・うどん・パスタ（主食）</span>
+            <span class="slider-val" id="val-rice">￥5,000</span>
+          </div>
+          <input type="range" id="range-rice" min="0" max="15000" step="500" value="5000" oninput="calculateBudget()">
+        </div>
+      </div>
+
+      <p class="budget-note">※スライダーを動かして買い出しのバランスと残高をいつでも確認できます。</p>
+    </div>
+  </section>
+
+  <!-- 予定編集モーダル -->
+  <div id="event-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-date-title">日付の予定入力</h3>
+        <button class="close-btn" onclick="closeEventModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="modal-text-input" style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 6px;">
+          予定タイトル（例：バイト 17-21時、テスト、サークルなど）:
+        </label>
+        <input type="text" id="modal-text-input" class="text-input" placeholder="予定を入力してください" style="width: 100%; padding: 8px; font-size: 0.9rem; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 12px;">
+
+        <!-- カラー選択機能 -->
+        <label style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 6px;">
+          予定のカラー表示:
+        </label>
+        <div class="color-picker-group" style="margin-bottom: 12px;">
+          <label class="color-option c-red">
+            <input type="radio" name="modal-color" value="red" checked>
+            <span>赤 (バイトなど)</span>
+          </label>
+          <label class="color-option c-yellow">
+            <input type="radio" name="modal-color" value="yellow">
+            <span>黄 (授業など)</span>
+          </label>
+          <label class="color-option c-green">
+            <input type="radio" name="modal-color" value="green">
+            <span>緑 (休日など)</span>
+          </label>
+          <label class="color-option c-blue">
+            <input type="radio" name="modal-color" value="blue">
+            <span>青 (テスト・重要)</span>
+          </label>
+          <label class="color-option c-purple">
+            <input type="radio" name="modal-color" value="purple">
+            <span>紫 (サークルなど)</span>
+          </label>
+        </div>
+
+        <label for="modal-schedule-select" style="font-size: 0.85rem; font-weight: bold; display: block; margin-bottom: 6px;">
+          この日の料理スタイル（調理時間の目安）:
+        </label>
+        <select id="modal-schedule-select" class="schedule-select" style="width: 100%; padding: 8px; font-size: 0.9rem;">
+          <option value="byte-late">💼 超多忙（2品 / 包丁不要・レンチン爆速）</option>
+          <option value="byte-short">💼 多忙（2品 / 包丁不要・レンチン）</option>
+          <option value="class-only">📚 通常（2品 / ワンパン10〜15分）</option>
+          <option value="off">🌴 フリー・休日（3品 / じっくり・作り置き）</option>
+        </select>
+      </div>
+      <div class="modal-footer" style="margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end;">
+        <button class="btn-action" onclick="saveEventFromModal()">予定を保存</button>
+        <button class="btn-action" onclick="resetEventFromModal()" style="color: #ef4444; border-color: #fca5a5;">予定を削除</button>
+        <button class="btn-action" onclick="closeEventModal()" style="color: #64748b;">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. まとめ買いリストエリア -->
+  <section id="shopping-view" class="tab-content">
+    <div class="shopping-section">
+      <h2>🛒 1週間のロスゼロ食材リスト</h2>
+      <ul class="shopping-list" id="shopping-list">
+        <!-- JSで動的生成 -->
+      </ul>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
